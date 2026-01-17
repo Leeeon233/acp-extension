@@ -226,6 +226,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     steps:
       - name: Setup Node.js
@@ -237,8 +239,8 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Configure npm auth (token fallback)
-        if: ${{ secrets.NPM_TOKEN != '' }}
-        run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
+        if: ${{ env.NPM_TOKEN != '' }}
+        run: npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
 
       - name: Download NPM packages
         uses: actions/download-artifact@v5
@@ -249,11 +251,17 @@ jobs:
       - name: Publish platform packages
         working-directory: packages/codex-acp
         run: |
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            publish_args=(--access public)
+          else
+            publish_args=(--provenance --access public)
+          fi
+
           for pkg in npm-packages/*; do
             if [ -d "$pkg" ]; then
               echo "Publishing $(basename "$pkg")..."
               cd "$pkg"
-              npm publish --provenance --access public
+              npm publish "${publish_args[@]}"
               cd ../..
             fi
           done
@@ -267,6 +275,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     steps:
       - name: Setup Node.js
@@ -278,8 +288,8 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Configure npm auth (token fallback)
-        if: ${{ secrets.NPM_TOKEN != '' }}
-        run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
+        if: ${{ env.NPM_TOKEN != '' }}
+        run: npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
 
       - name: Download base package
         uses: actions/download-artifact@v5
@@ -296,4 +306,8 @@ jobs:
         working-directory: packages/codex-acp
         run: |
           cd npm
-          npm publish --provenance --access public
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            npm publish --access public
+          else
+            npm publish --provenance --access public
+          fi
