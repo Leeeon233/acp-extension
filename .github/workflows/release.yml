@@ -232,10 +232,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Update npm
         run: npm install -g npm@latest
+
+      - name: Configure npm auth (token fallback)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
 
       - name: Download NPM packages
         uses: actions/download-artifact@v5
@@ -254,9 +257,6 @@ jobs:
               cd ../..
             fi
           done
-        env:
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
 
   publish-npm-base:
     name: Publish NPM Base Package
@@ -273,10 +273,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Update npm
         run: npm install -g npm@latest
+
+      - name: Configure npm auth (token fallback)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
 
       - name: Download base package
         uses: actions/download-artifact@v5
@@ -294,6 +297,3 @@ jobs:
         run: |
           cd npm
           npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
