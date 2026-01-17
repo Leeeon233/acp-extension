@@ -60,74 +60,9 @@ import { ContentBlockParam } from "@anthropic-ai/sdk/resources";
 import { BetaContentBlock, BetaRawContentBlockDelta } from "@anthropic-ai/sdk/resources/beta.mjs";
 import packageJson from '../package.json' with { type: 'json' };
 import { randomUUID } from "node:crypto";
-import { performance } from "node:perf_hooks";
 import { EXT_METHOD_NAME, ModelUsage } from '@lody/acp-extension';
 
 export const CLAUDE_CONFIG_DIR = process.env.CLAUDE ?? path.join(os.homedir(), ".claude");
-
-/**
- * Default timeout for createSession operations (2 minutes).
- * Can be overridden via ACP_CREATE_SESSION_TIMEOUT_MS environment variable.
- */
-const CREATE_SESSION_TIMEOUT_MS = parseInt(
-  process.env.ACP_CREATE_SESSION_TIMEOUT_MS ?? "120000",
-  10,
-);
-
-/**
- * Error thrown when an ACP operation times out.
- */
-export class AcpTimeoutError extends Error {
-  constructor(
-    public readonly operationName: string,
-    public readonly timeoutMs: number,
-  ) {
-    super(
-      `[ACP_TIMEOUT] Operation "${operationName}" timed out after ${Math.round(timeoutMs / 1000)}s`,
-    );
-    this.name = "AcpTimeoutError";
-  }
-}
-
-/**
- * Wraps a promise with a timeout. If the operation doesn't complete within
- * the specified timeout, the promise is rejected with an AcpTimeoutError.
- * Logs warnings at regular intervals while waiting.
- */
-function withTimeout<T>(
-  promise: Promise<T>,
-  operationName: string,
-  timeoutMs: number,
-  logger: Logger,
-  warningIntervalMs: number = 10000,
-): Promise<T> {
-  let completed = false;
-  let elapsedMs = 0;
-
-  const warningInterval = setInterval(() => {
-    elapsedMs += warningIntervalMs;
-    if (!completed) {
-      const remainingMs = timeoutMs - elapsedMs;
-      logger.log(
-        `[ACP] Operation "${operationName}" is still pending after ${Math.round(elapsedMs / 1000)}s ` +
-        `(timeout in ${Math.round(remainingMs / 1000)}s)`,
-      );
-    }
-  }, warningIntervalMs);
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      if (!completed) {
-        reject(new AcpTimeoutError(operationName, timeoutMs));
-      }
-    }, timeoutMs);
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    completed = true;
-    clearInterval(warningInterval);
-  });
-}
 
 /**
  * Logger interface for customizing logging output
@@ -698,20 +633,10 @@ export class ClaudeAcpAgent implements Agent {
     this.logger.log(`[ACP] Session ID: ${sessionId}`);
 
     const input = new Pushable<SDKUserMessage>();
-
-    this.logger.log(`[ACP] Initializing SettingsManager...`);
-    const settingsInitStart = performance.now();
     const settingsManager = new SettingsManager(params.cwd, {
       logger: this.logger,
     });
-    await withTimeout(
-      settingsManager.initialize(),
-      "settingsManager.initialize",
-      CREATE_SESSION_TIMEOUT_MS,
-      this.logger,
-    );
-    this.logger.log(`[ACP] SettingsManager initialized in ${Math.round(performance.now() - settingsInitStart)}ms`);
-
+    await settingsManager.initialize();
     const mcpServers: Record<string, McpServerConfig> = {};
     if (Array.isArray(params.mcpServers)) {
       for (const server of params.mcpServers) {
@@ -898,26 +823,8 @@ export class ClaudeAcpAgent implements Agent {
     // 1. The CLI subprocess failed to start
     // 2. The CLI is waiting for network/authentication
     // 3. There are missing dependencies in the environment
-    this.logger.log(`[ACP] Getting available slash commands...`);
-    const commandsStart = performance.now();
-    const availableCommands = await withTimeout(
-      getAvailableSlashCommands(q),
-      "query.supportedCommands",
-      CREATE_SESSION_TIMEOUT_MS,
-      this.logger,
-    );
-    this.logger.log(`[ACP] Got ${availableCommands.length} commands in ${Math.round(performance.now() - commandsStart)}ms`);
-
-    this.logger.log(`[ACP] Getting available models...`);
-    const modelsStart = performance.now();
-    const models = await withTimeout(
-      getAvailableModels(q),
-      "query.supportedModels",
-      CREATE_SESSION_TIMEOUT_MS,
-      this.logger,
-    );
-    this.logger.log(`[ACP] Got ${models.availableModels.length} models in ${Math.round(performance.now() - modelsStart)}ms`);
-
+    const availableCommands = getAvailableSlashCommands(q);
+    const models = await getAvailableModels(q);
     // Needs to happen after we return the session
     setTimeout(() => {
       this.client.sessionUpdate({
