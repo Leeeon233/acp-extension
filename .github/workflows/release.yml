@@ -250,7 +250,7 @@ jobs:
             if [ -d "$pkg" ]; then
               echo "Publishing $(basename "$pkg")..."
               cd "$pkg"
-              npm publish --provenance
+              npm publish --provenance --access public || npm publish --access public
               cd ../..
             fi
           done
@@ -290,4 +290,4 @@ jobs:
         working-directory: packages/codex-acp
         run: |
           cd npm
-          npm publish --provenance
+          npm publish --provenance --access public || npm publish --access public
