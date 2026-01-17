@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  NPM_BASE_NAME: acp-extension-codex
+
 on:
   push:
     tags:
@@ -190,10 +193,14 @@ jobs:
 
       - name: Create platform-specific packages
         working-directory: packages/codex-acp
+        env:
+          NPM_BASE_NAME: ${{ env.NPM_BASE_NAME }}
         run: bash npm/publish/create-platform-packages.sh ./artifacts ./npm-packages ${{ needs.get-version.outputs.version }}
 
       - name: Update base package version
         working-directory: packages/codex-acp
+        env:
+          NPM_BASE_NAME: ${{ env.NPM_BASE_NAME }}
         run: bash npm/publish/update-base-package.sh ${{ needs.get-version.outputs.version }}
 
       - name: Upload NPM packages
@@ -243,7 +250,7 @@ jobs:
             if [ -d "$pkg" ]; then
               echo "Publishing $(basename "$pkg")..."
               cd "$pkg"
-              npm publish
+              npm publish --provenance
               cd ../..
             fi
           done
@@ -283,4 +290,4 @@ jobs:
         working-directory: packages/codex-acp
         run: |
           cd npm
-          npm publish
+          npm publish --provenance
