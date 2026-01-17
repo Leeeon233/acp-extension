@@ -1,0 +1,7 @@
+[submodule "packages/codex-acp"]
+  path = packages/codex-acp
+  url = https://github.com/Leeeon233/codex-acp
+
+[submodule "packages/claude-code-acp"]
+  path = packages/claude-code-acp
+  url = https://github.com/Leeeon233/claude-code-acp
