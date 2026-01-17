@@ -617,9 +617,6 @@ export class ClaudeAcpAgent implements Agent {
     params: NewSessionRequest,
     creationOpts: { resume?: string; forkSession?: boolean } = {},
   ): Promise<NewSessionResponse> {
-    const createSessionStart = performance.now();
-    this.logger.log(`[ACP] createSession started (cwd=${params.cwd} resume=${creationOpts.resume ?? "none"} fork=${creationOpts.forkSession ?? false})`);
-
     // We want to create a new session id unless it is resume,
     // but not resume + forkSession.
     let sessionId;
@@ -802,13 +799,10 @@ export class ClaudeAcpAgent implements Agent {
       throw new Error("Cancelled");
     }
 
-    this.logger.log(`[ACP] Creating query (spawning Claude Code CLI)...`);
-    const queryCreateStart = performance.now();
     const q = query({
       prompt: input,
       options,
     });
-    this.logger.log(`[ACP] Query created in ${Math.round(performance.now() - queryCreateStart)}ms`);
 
     this.sessions[sessionId] = {
       query: q,
@@ -823,7 +817,7 @@ export class ClaudeAcpAgent implements Agent {
     // 1. The CLI subprocess failed to start
     // 2. The CLI is waiting for network/authentication
     // 3. There are missing dependencies in the environment
-    const availableCommands = getAvailableSlashCommands(q);
+    const availableCommands = await getAvailableSlashCommands(q);
     const models = await getAvailableModels(q);
     // Needs to happen after we return the session
     setTimeout(() => {
@@ -866,9 +860,6 @@ export class ClaudeAcpAgent implements Agent {
         description: "Bypass all permission checks",
       });
     }
-
-    const totalDurationMs = Math.round(performance.now() - createSessionStart);
-    this.logger.log(`[ACP] createSession completed in ${totalDurationMs}ms (sessionId=${sessionId})`);
 
     return {
       sessionId,
