@@ -250,10 +250,13 @@ jobs:
             if [ -d "$pkg" ]; then
               echo "Publishing $(basename "$pkg")..."
               cd "$pkg"
-              npm publish --provenance --access public || npm publish --access public
+              npm publish --provenance --access public
               cd ../..
             fi
           done
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
 
   publish-npm-base:
     name: Publish NPM Base Package
@@ -290,4 +293,7 @@ jobs:
         working-directory: packages/codex-acp
         run: |
           cd npm
-          npm publish --provenance --access public || npm publish --access public
+          npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
