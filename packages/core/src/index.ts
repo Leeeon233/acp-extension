@@ -11,6 +11,7 @@ export type ModelUsage = {
     outputTokens: number,
     cacheReadInputTokens: number,
     cacheCreationInputTokens?: number,
+    reasoningOutputTokens?: number,
     webSearchRequests?: number,
     costUSD?: number
 }
