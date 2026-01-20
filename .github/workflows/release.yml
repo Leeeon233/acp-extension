@@ -148,6 +148,11 @@ jobs:
           ARCHIVE_BASE="acp-extension-codex-${{ needs.get-version.outputs.version }}-${{ matrix.target }}"
           BIN_DIR="packages/codex-acp/target/${{ matrix.target }}/release"
 
+          # Ensure the binary is executable before archiving (so downstream packaging preserves +x).
+          if [[ -f "$BIN_DIR/$BINARY_NAME" ]] && [[ "${{ matrix.os }}" != windows-* ]]; then
+            chmod +x "$BIN_DIR/$BINARY_NAME" || true
+          fi
+
           if [[ "${{ matrix.os }}" == windows-* ]]; then
             (cd "$BIN_DIR" && 7z a -tzip "$GITHUB_WORKSPACE/${ARCHIVE_BASE}.zip" "$BINARY_NAME")
             echo "archive_path=${ARCHIVE_BASE}.zip" >> "$GITHUB_OUTPUT"
