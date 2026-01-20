@@ -144,8 +144,8 @@ jobs:
         id: create_archive
         shell: bash
         run: |
-          BINARY_NAME="codex-acp${{ matrix.binary_extension }}"
-          ARCHIVE_BASE="codex-acp-${{ needs.get-version.outputs.version }}-${{ matrix.target }}"
+          BINARY_NAME="acp-extension-codex${{ matrix.binary_extension }}"
+          ARCHIVE_BASE="acp-extension-codex-${{ needs.get-version.outputs.version }}-${{ matrix.target }}"
           BIN_DIR="packages/codex-acp/target/${{ matrix.target }}/release"
 
           if [[ "${{ matrix.os }}" == windows-* ]]; then
