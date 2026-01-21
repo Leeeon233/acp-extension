@@ -30,8 +30,8 @@ export type SessionUsageUpdate = {
 
 export type UsageData = {
     planName: string | null;  // 'Max', 'Pro', or null for API users
-    fiveHour: number | null;  // 0-100 percentage, null if unavailable
-    sevenDay: number | null;  // 0-100 percentage, null if unavailable
+    fiveHour: number | null;
+    sevenDay: number | null;
     fiveHourResetAt: number | null;
     sevenDayResetAt: number | null;
     apiUnavailable?: boolean; // true if API call failed (user should check DEBUG logs)
