@@ -1,7 +1,8 @@
 export const EXT_METHOD_NAME = {
     usage_update: 'acp_ext:session_usage_update',
     title_generate: 'acp_ext:session_title_generate',
-    rate_limits: 'acp_ext:session_rate_limits'
+    rate_limits: 'acp_ext:session_rate_limits',
+    context_usage_update: 'acp_ext:session_context_usage'
 } as const;
 
 export type EXT_METHOD_NAME_TYPE =
@@ -24,6 +25,7 @@ export type SessionUsageUpdate = {
         cacheReadInputTokens: number,
         cacheCreationInputTokens?: number,
         reasoningOutputTokens?: number,
+        contextWindow?: number,
     },
     modelUsage?: { [key: string]: ModelUsage }
 }
