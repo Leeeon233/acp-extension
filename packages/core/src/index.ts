@@ -1,8 +1,6 @@
 export const EXT_METHOD_NAME = {
     usage_update: 'acp_ext:session_usage_update',
-    title_generate: 'acp_ext:session_title_generate',
     rate_limits: 'acp_ext:session_rate_limits',
-    context_usage_update: 'acp_ext:session_context_usage'
 } as const;
 
 export type EXT_METHOD_NAME_TYPE =
@@ -30,23 +28,11 @@ export type SessionUsageUpdate = {
     modelUsage?: { [key: string]: ModelUsage }
 }
 
-export type AccountPlanType = "free" | "plus" | "pro" | "team" | "business" | "enterprise" | "edu" | "unknown"
-
-export type RateLimitSnapshot = {
-    primary?: RateLimitWindow;
-    secondary?: RateLimitWindow;
-    credits?: CreditsSnapshot;
-    planType?: AccountPlanType;
-}
-
-export type RateLimitWindow = {
-    usedPercent: number;
-    windowMinutes: number;
-    resetsAt?: number
-}
-
-export type CreditsSnapshot = {
-    hasCredits: boolean;
-    unlimited: boolean;
-    balance?: string;
+export type UsageData = {
+    planName: string | null;  // 'Max', 'Pro', or null for API users
+    fiveHour: number | null;  // 0-100 percentage, null if unavailable
+    sevenDay: number | null;  // 0-100 percentage, null if unavailable
+    fiveHourResetAt: number | null;
+    sevenDayResetAt: number | null;
+    apiUnavailable?: boolean; // true if API call failed (user should check DEBUG logs)
 }
