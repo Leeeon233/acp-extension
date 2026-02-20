@@ -86,13 +86,12 @@ jobs:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_extension: ""
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             binary_extension: ""
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
-            binary_extension: ""
-          - os: ubuntu-22.04-arm
+          - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
             binary_extension: ""
           - os: windows-latest
@@ -115,6 +114,17 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
+        name: Use hermetic Cargo home (musl)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo_home="${GITHUB_WORKSPACE}/.cargo-home"
+          mkdir -p "${cargo_home}/bin"
+          echo "CARGO_HOME=${cargo_home}" >> "$GITHUB_ENV"
+          echo "${cargo_home}/bin" >> "$GITHUB_PATH"
+          : > "${cargo_home}/config.toml"
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -132,19 +142,64 @@ jobs:
             ${{ matrix.os }}-${{ matrix.target }}-cargo-git-
 
       - name: Install Linux build dependencies
-        if: ${{ runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && matrix.target != 'aarch64-unknown-linux-musl' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config libcap-dev
-
-      - name: Clear sanitizer flags (Linux host)
         if: ${{ runner.os == 'Linux' }}
         shell: bash
         run: |
           set -euo pipefail
-          # Clear global Rust flags so host/proc-macro builds do not pull in UBSan.
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pkg-config libcap-dev
+
+      - name: Install UBSan runtime (musl)
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libubsan1
+          fi
+
+      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
+        name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+
+      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
+        name: Install musl build tools
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash "${GITHUB_WORKSPACE}/.github/scripts/install-musl-build-tools.sh"
+
+      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
+        name: Configure rustc UBSan wrapper (musl host)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ubsan=""
+          if command -v ldconfig >/dev/null 2>&1; then
+            ubsan="$(ldconfig -p | grep -m1 'libubsan\.so\.1' | sed -E 's/.*=> (.*)$/\1/')"
+          fi
+          wrapper_root="${RUNNER_TEMP:-/tmp}"
+          wrapper="${wrapper_root}/rustc-ubsan-wrapper"
+          cat > "${wrapper}" <<EOF
+          #!/usr/bin/env bash
+          set -euo pipefail
+          if [[ -n "${ubsan}" ]]; then
+            export LD_PRELOAD="${ubsan}\${LD_PRELOAD:+:\${LD_PRELOAD}}"
+          fi
+          exec "\$1" "\${@:2}"
+          EOF
+          chmod +x "${wrapper}"
+          echo "RUSTC_WRAPPER=${wrapper}" >> "$GITHUB_ENV"
+          echo "RUSTC_WORKSPACE_WRAPPER=" >> "$GITHUB_ENV"
+
+      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
+        name: Clear sanitizer flags (musl)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Clear global Rust flags so host/proc-macro builds don't pull in UBSan.
           echo "RUSTFLAGS=" >> "$GITHUB_ENV"
           echo "CARGO_ENCODED_RUSTFLAGS=" >> "$GITHUB_ENV"
           echo "RUSTDOCFLAGS=" >> "$GITHUB_ENV"
@@ -168,51 +223,11 @@ jobs:
           echo "CFLAGS=${cflags}" >> "$GITHUB_ENV"
           echo "CXXFLAGS=${cxxflags}" >> "$GITHUB_ENV"
 
-          # Keep parity with codex CI where aws-lc-sys can inherit sanitizer flags via cmake.
+          # aws-lc-sys's jitterentropy C code picks up runner-injected
+          # UBSan flags through cmake in ways that are hard to fully
+          # suppress.  Disable jitterentropy entirely — the codex Bazel
+          # build does the same (see MODULE.bazel).
           echo "AWS_LC_SYS_NO_JITTER_ENTROPY=1" >> "$GITHUB_ENV"
-
-      - name: Install UBSan runtime (Linux host)
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libubsan1
-
-      - name: Configure rustc UBSan wrapper (Linux host)
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          ubsan=""
-          if command -v ldconfig >/dev/null 2>&1; then
-            ubsan="$(ldconfig -p | grep -m1 'libubsan\.so\.1' | sed -E 's/.*=> (.*)$/\1/')"
-          fi
-          wrapper_root="${RUNNER_TEMP:-/tmp}"
-          wrapper="${wrapper_root}/rustc-ubsan-wrapper"
-          cat > "${wrapper}" <<EOF
-          #!/usr/bin/env bash
-          set -euo pipefail
-          if [[ -n "${ubsan}" ]]; then
-            export LD_PRELOAD="${ubsan}\${LD_PRELOAD:+:\${LD_PRELOAD}}"
-          fi
-          exec "\$1" "\${@:2}"
-          EOF
-          chmod +x "${wrapper}"
-          echo "RUSTC_WRAPPER=${wrapper}" >> "$GITHUB_ENV"
-          echo "RUSTC_WORKSPACE_WRAPPER=" >> "$GITHUB_ENV"
-
-      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
-        name: Install Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.14.0
-
-      - if: ${{ matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'}}
-        name: Install musl build tools
-        env:
-          TARGET: ${{ matrix.target }}
-        run: bash "${GITHUB_WORKSPACE}/packages/codex-acp/.github/scripts/install-musl-build-tools.sh"
 
       - name: Build release binary
         run: cargo build --release --manifest-path packages/codex-acp/Cargo.toml --target ${{ matrix.target }}
