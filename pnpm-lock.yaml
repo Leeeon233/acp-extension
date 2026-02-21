@@ -67,17 +67,20 @@ importers:
     dependencies:
       '@agentclientprotocol/sdk':
         specifier: 0.14.1
-        version: 0.14.1(zod@3.25.76)
+        version: 0.14.1(zod@4.3.6)
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.2.45
-        version: 0.2.45(zod@3.25.76)
+        version: 0.2.45(zod@4.3.6)
       acp-extension-core:
         specifier: workspace:*
         version: link:../core
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: 0.76.0
-        version: 0.76.0(zod@3.25.76)
+        version: 0.76.0(zod@4.3.6)
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.0.0)
@@ -111,9 +114,6 @@ importers:
       vitest:
         specifier: 4.0.18
         version: 4.0.18(@types/node@25.2.3)(tsx@4.21.0)
-      zod:
-        specifier: ^3.25.0
-        version: 3.25.76
 
   packages/core: {}
 
@@ -1641,18 +1641,18 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
 
-  '@agentclientprotocol/sdk@0.14.1(zod@3.25.76)':
+  '@agentclientprotocol/sdk@0.14.1(zod@4.3.6)':
     dependencies:
-      zod: 3.25.76
+      zod: 4.3.6
 
-  '@anthropic-ai/claude-agent-sdk@0.2.45(zod@3.25.76)':
+  '@anthropic-ai/claude-agent-sdk@0.2.45(zod@4.3.6)':
     dependencies:
-      zod: 3.25.76
+      zod: 4.3.6
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.33.5
       '@img/sharp-darwin-x64': 0.33.5
@@ -1663,11 +1663,11 @@ snapshots:
       '@img/sharp-linuxmusl-x64': 0.33.5
       '@img/sharp-win32-x64': 0.33.5
 
-  '@anthropic-ai/sdk@0.76.0(zod@3.25.76)':
+  '@anthropic-ai/sdk@0.76.0(zod@4.3.6)':
     dependencies:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.3.6
 
   '@babel/code-frame@7.28.6':
     dependencies:
@@ -3109,4 +3109,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.25.76: {}
+  zod@4.3.6: {}
