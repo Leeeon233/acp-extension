@@ -23,7 +23,6 @@ export type SessionUsageUpdate = {
         cacheReadInputTokens: number,
         cacheCreationInputTokens?: number,
         reasoningOutputTokens?: number,
-        contextWindow?: number,
     },
     modelUsage?: { [key: string]: ModelUsage }
 }
