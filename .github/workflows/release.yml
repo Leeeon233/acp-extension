@@ -1,8 +1,5 @@
 name: Release
 
-env:
-  NPM_BASE_NAME: acp-extension-codex
-
 on:
   push:
     tags:
@@ -19,6 +16,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  NPM_BASE_NAME: acp-extension-codex
 
 jobs:
   get-version:
