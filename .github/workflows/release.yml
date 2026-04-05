@@ -179,11 +179,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          manifest_dir="packages/codex-acp"
+          lock_path="${manifest_dir}/Cargo.lock"
           # denoland/rusty_v8 does not publish musl prebuilts; use the ones
           # hosted on the upstream openai/codex releases instead.
           version=$(python3 -c "
           import tomllib, pathlib
-          lock = tomllib.loads(pathlib.Path('Cargo.lock').read_text())
+          lock = tomllib.loads(pathlib.Path('${lock_path}').read_text())
           vs = [p['version'] for p in lock['package'] if p['name'] == 'v8']
           assert len(vs) == 1, f'expected 1 v8 version, got {vs}'
           print(vs[0])
