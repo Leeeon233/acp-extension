@@ -92,6 +92,7 @@ jobs:
             binary_extension: ""
           - os: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
+            binary_extension: ""
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
             binary_extension: ""
@@ -258,16 +259,15 @@ jobs:
           # build does the same (see MODULE.bazel).
           echo "AWS_LC_SYS_NO_JITTER_ENTROPY=1" >> "$GITHUB_ENV"
 
-      - name: Build release binary
-        run: cargo build --release --manifest-path packages/codex-acp/Cargo.toml --target ${{ matrix.target }}
-
       - name: Install bundled bwrap (Linux)
         if: ${{ runner.os == 'Linux' }}
         working-directory: packages/codex-acp
         env:
           TARGET: ${{ matrix.target }}
-          GITHUB_WORKSPACE: ${{ github.workspace }}/packages/codex-acp
         run: bash ".github/scripts/install-bundled-bwrap.sh"
+
+      - name: Build release binary
+        run: cargo build --release --manifest-path packages/codex-acp/Cargo.toml --target ${{ matrix.target }}
 
       - name: Create archive
         id: create_archive
@@ -284,6 +284,15 @@ jobs:
           else
             archive_items=("$BINARY_NAME")
             if [[ "${{ runner.os }}" == "Linux" ]]; then
+              # The upstream bwrap installer writes under $GITHUB_WORKSPACE/target;
+              # this monorepo builds codex-acp under packages/codex-acp/target.
+              bwrap_path="$GITHUB_WORKSPACE/target/${{ matrix.target }}/release/bwrap"
+              if [[ ! -x "$bwrap_path" ]]; then
+                echo "Missing bundled bwrap at $bwrap_path" >&2
+                exit 1
+              fi
+              mkdir -p "$BIN_DIR/codex-resources"
+              install -m 0755 "$bwrap_path" "$BIN_DIR/codex-resources/bwrap"
               if [[ ! -x "$BIN_DIR/codex-resources/bwrap" ]]; then
                 echo "Missing bundled bwrap at $BIN_DIR/codex-resources/bwrap" >&2
                 exit 1
@@ -391,7 +400,7 @@ jobs:
         working-directory: packages/codex-acp
         run: |
           # upload-artifact/download-artifact can drop Unix executable bits; restore before npm publish.
-          find npm-packages -type f -path "*/bin/acp-extension-codex" -exec chmod 755 {} +
+          find npm-packages -type f \( -path "*/bin/acp-extension-codex" -o -path "*/codex-resources/bwrap" \) -exec chmod 755 {} +
 
       - name: Publish platform packages
         working-directory: packages/codex-acp
