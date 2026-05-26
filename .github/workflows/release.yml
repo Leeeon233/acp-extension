@@ -261,6 +261,14 @@ jobs:
       - name: Build release binary
         run: cargo build --release --manifest-path packages/codex-acp/Cargo.toml --target ${{ matrix.target }}
 
+      - name: Install bundled bwrap (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        working-directory: packages/codex-acp
+        env:
+          TARGET: ${{ matrix.target }}
+          GITHUB_WORKSPACE: ${{ github.workspace }}/packages/codex-acp
+        run: bash ".github/scripts/install-bundled-bwrap.sh"
+
       - name: Create archive
         id: create_archive
         shell: bash
@@ -274,7 +282,15 @@ jobs:
             echo "archive_path=${ARCHIVE_BASE}.zip" >> "$GITHUB_OUTPUT"
             echo "archive_name=${ARCHIVE_BASE}.zip" >> "$GITHUB_OUTPUT"
           else
-            tar -C "$BIN_DIR" -czf "${ARCHIVE_BASE}.tar.gz" "$BINARY_NAME"
+            archive_items=("$BINARY_NAME")
+            if [[ "${{ runner.os }}" == "Linux" ]]; then
+              if [[ ! -x "$BIN_DIR/codex-resources/bwrap" ]]; then
+                echo "Missing bundled bwrap at $BIN_DIR/codex-resources/bwrap" >&2
+                exit 1
+              fi
+              archive_items+=("codex-resources/bwrap")
+            fi
+            tar -C "$BIN_DIR" -czf "${ARCHIVE_BASE}.tar.gz" "${archive_items[@]}"
             echo "archive_path=${ARCHIVE_BASE}.tar.gz" >> "$GITHUB_OUTPUT"
             echo "archive_name=${ARCHIVE_BASE}.tar.gz" >> "$GITHUB_OUTPUT"
           fi
