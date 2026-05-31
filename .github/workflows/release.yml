@@ -390,6 +390,36 @@ jobs:
         if: ${{ env.NPM_TOKEN != '' }}
         run: npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
 
+      - name: Verify npm publish access (token fallback)
+        if: ${{ env.NPM_TOKEN != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm_user="$(npm whoami --registry=https://registry.npmjs.org/)"
+          echo "Publishing to npm as ${npm_user}"
+
+          packages=(
+            acp-extension-codex
+            acp-extension-codex-darwin-arm64
+            acp-extension-codex-darwin-x64
+            acp-extension-codex-linux-arm64
+            acp-extension-codex-linux-x64
+            acp-extension-codex-win32-arm64
+            acp-extension-codex-win32-x64
+          )
+
+          for package_name in "${packages[@]}"; do
+            permission="$(
+              npm access list collaborators "${package_name}" "${npm_user}" --json --registry=https://registry.npmjs.org/ |
+                node -e 'const fs = require("fs"); const user = process.argv[1]; const data = JSON.parse(fs.readFileSync(0, "utf8")); console.log(data[user] || "");' "${npm_user}"
+            )"
+
+            if [[ "${permission}" != "read-write" ]]; then
+              echo "::error::NPM_TOKEN user ${npm_user} has '${permission:-no}' access to ${package_name}; expected read-write"
+              exit 1
+            fi
+          done
+
       - name: Download NPM packages
         uses: actions/download-artifact@v5
         with:
