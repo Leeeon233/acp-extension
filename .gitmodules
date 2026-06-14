@@ -5,3 +5,7 @@
 [submodule "packages/claude-code-acp"]
   path = packages/claude-code-acp
   url = https://github.com/Leeeon233/claude-code-acp
+
+[submodule "packages/acp-extension-claude-pty"]
+  path = packages/acp-extension-claude-pty
+  url = https://github.com/Leeeon233/acp-extension-claude-pty
