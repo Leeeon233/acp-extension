@@ -9,3 +9,7 @@
 [submodule "packages/acp-extension-claude-pty"]
   path = packages/acp-extension-claude-pty
   url = https://github.com/Leeeon233/acp-extension-claude-pty
+
+[submodule "packages/acp-extension-codex"]
+  path = packages/acp-extension-codex
+  url = https://github.com/Leeeon233/acp-extension-codex.git
